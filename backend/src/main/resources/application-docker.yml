@@ -1,0 +1,17 @@
+# Docker 环境配置（docker-compose 使用）
+# 连接信息全部来自环境变量，见 application.yml 中的 ${} 占位与 docker-compose.yml
+
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 15
+
+daytrace:
+  login:
+    max-failed-attempts: 5
+    lock-minutes: 15
+
+logging:
+  level:
+    root: info
+    com.daytrace: info
