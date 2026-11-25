@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>用户与权限 · 日迹 DayTrace</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  /* ---------- 页签 ---------- */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+  .tab {
+    position: relative;
+    height: 40px; padding: 0 14px;
+    font-size: 13.5px; color: var(--ink-2);
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .tab.is-on { color: var(--ink); font-weight: 500; }
+  .tab.is-on::after {
+    content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px;
+    height: 2px; border-radius: 2px 2px 0 0;
+    background: var(--ink);
+  }
+  .tab b { font-family: var(--font-num); font-size: 11px; color: var(--ink-4); font-weight: 400; }
+
+  /* ---------- 角色卡 ---------- */
+  .roles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 26px; }
+
+  .role {
+    position: relative; overflow: hidden;
+    padding: 18px 18px 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    transition: box-shadow .18s ease, transform .18s ease;
+  }
+  .role:hover { box-shadow: var(--sh-2); transform: translateY(-1px); }
+  .role::after {
+    content: ""; position: absolute; right: -34px; top: -34px;
+    width: 92px; height: 92px; border-radius: 50%;
+    opacity: .5;
+  }
+  .role--user::after { background: radial-gradient(circle, rgba(250,188,227,.9), transparent 68%); }
+  .role--reviewer::after { background: radial-gradient(circle, rgba(225,233,10,.75), transparent 68%); }
+  .role--operator::after { background: radial-gradient(circle, rgba(208,173,203,.9), transparent 68%); }
+  .role--admin::after { background: radial-gradient(circle, rgba(255,253,13,.8), transparent 68%); }
+
+  .role__top { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; position: relative; z-index: 1; }
+  .role__ico {
+    width: 30px; height: 30px; border-radius: 9px;
+    display: grid; place-items: center;
+  }
+  .role--user .role__ico { background: var(--blush-soft); color: var(--pink-deep); }
+  .role--reviewer .role__ico { background: #F4F7D6; color: var(--lime-deep); }
+  .role--operator .role__ico { background: #F3EAF2; color: var(--mauve-deep); }
+  .role--admin .role__ico { background: #FFFDE0; color: var(--sun-deep); }
+
+  .role__name { font-size: 14px; font-weight: 600; line-height: 1.2; }
+  .role__code { font-size: 10px; letter-spacing: .14em; color: var(--ink-4); text-transform: uppercase; margin-top: 3px; }
+
+  .role__stats { display: flex; gap: 18px; position: relative; z-index: 1; }
+  .role__stat span { display: block; font-family: var(--font-num); font-size: 20px; line-height: 1; }
+  .role__stat em { display: block; font-style: normal; font-size: 11px; color: var(--ink-3); margin-top: 5px; }
+
+  .role__desc {
+    margin-top: 13px; padding-top: 12px;
+    border-top: 1px dashed var(--line);
+    font-size: 11.5px; line-height: 1.75; color: var(--ink-3);
+    position: relative; z-index: 1;
+  }
+
+  /* ---------- 矩阵 ---------- */
+  .matrix-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+
+  .matrix-card__head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px;
+    padding: 17px 22px;
+    border-bottom: 1px solid var(--line);
+  }
+  .matrix-card__head h3 { font-size: 14px; font-weight: 600; }
+  .matrix-card__head p { font-size: 11.5px; color: var(--ink-3); margin-top: 3px; }
+
+  .matrix { width: 100%; border-collapse: separate; border-spacing: 0; }
+
+  .matrix thead th {
+    position: sticky; top: 0; z-index: 2;
+    background: var(--paper);
+    padding: 11px 14px;
+    font-size: 11px; font-weight: 500; letter-spacing: .1em;
+    color: var(--ink-3); text-transform: uppercase;
+    border-bottom: 1px solid var(--line);
+    text-align: center;
+  }
+  .matrix thead th:first-child { text-align: left; padding-left: 22px; width: 42%; }
+  .matrix thead th small { display: block; font-size: 9.5px; letter-spacing: .18em; color: var(--ink-4); margin-top: 2px; }
+
+  .matrix tr.grp td {
+    background: linear-gradient(90deg, var(--paper-2), var(--paper));
+    padding: 8px 22px;
+    font-size: 11px; letter-spacing: .16em;
+    color: var(--mauve-deep); text-transform: uppercase;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .matrix tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12.5px;
+    text-align: center;
+    vertical-align: middle;
+  }
+  .matrix tbody td:first-child { text-align: left; padding-left: 22px; }
+  .matrix tbody tr:not(.grp):hover td { background: rgba(249,229,240,.26); }
+
+  .perm__name { color: var(--ink); }
+  .perm__code {
+    display: block;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 10.5px; color: var(--ink-4);
+    margin-top: 2px; letter-spacing: -.01em;
+  }
+
+  .matrix__foot {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 22px;
+    background: var(--paper);
+    font-size: 11.5px; color: var(--ink-3);
+  }
+  .legend { display: flex; align-items: center; gap: 16px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 14px; height: 14px; border-radius: 4px; display: block; }
+  .legend i.on { background: var(--sun); box-shadow: inset 0 0 0 1px rgba(122,107,0,.35); }
+  .legend i.off { background: #fff; box-shadow: inset 0 0 0 1.5px var(--line-2); }
+  .legend i.lock { background: var(--blush-soft); box-shadow: inset 0 0 0 1px var(--blush); }
+</style>
+</head>
+<body>
+<script src="icons.js"></script>
+
+<div class="app">
+
+  <aside class="sidenav">
+    <div class="brand">
+      <div class="brand__mark"></div>
+      <div>
+        <div class="brand__name">日迹</div>
+        <div class="brand__en">Daytrace</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav__label">书写</div>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-book"></use></svg>我的日记</a>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-pen"></use></svg>写一篇</a>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-tag"></use></svg>标签</a>
+
+      <div class="nav__label">系统</div>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-shield"></use></svg>审核台</a>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-flag"></use></svg>举报处理</a>
+      <a class="nav-item is-active" href="#"><svg class="ico"><use href="#i-users"></use></svg>用户与权限</a>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-chart"></use></svg>数据统计</a>
+    </nav>
+
+    <div class="nav__foot">
+      <div class="user-card">
+        <div class="avatar" style="background:linear-gradient(140deg,#FFFDE0,#FFFD0D);color:#7A6B00">管</div>
+        <div class="grow">
+          <div class="user-card__name">admin</div>
+          <div class="user-card__role">超级管理员 · ADMIN</div>
+        </div>
+        <svg class="ico" style="width:15px;height:15px"><use href="#i-logout"></use></svg>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <div class="page-head">
+      <div class="page-head__title">
+        <span class="eyebrow">系统管理</span>
+        <h1 class="h1">用户与权限</h1>
+      </div>
+      <div class="page-head__actions">
+        <button class="btn btn--ghost btn--sm"><svg class="ico" style="width:14px;height:14px"><use href="#i-clock"></use></svg>操作日志</button>
+        <button class="btn btn--primary btn--sm"><svg class="ico" style="width:14px;height:14px;color:#FFF9F5"><use href="#i-users"></use></svg>新建角色</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <a class="tab is-on" href="#">角色与权限 <b>4</b></a>
+      <a class="tab" href="#">用户列表 <b>6</b></a>
+      <a class="tab" href="#">操作日志 <b>128</b></a>
+    </div>
+
+    <div class="roles">
+      <div class="role role--user">
+        <div class="role__top">
+          <div class="role__ico"><svg class="ico" style="width:16px;height:16px"><use href="#i-book"></use></svg></div>
+          <div>
+            <div class="role__name">普通用户</div>
+            <div class="role__code">User</div>
+          </div>
+        </div>
+        <div class="role__stats">
+          <div class="role__stat"><span>3</span><em>成员</em></div>
+          <div class="role__stat"><span>9</span><em>权限</em></div>
+        </div>
+        <div class="role__desc">写日记、提交审核、举报违规内容。只能查看与操作自己的内容。</div>
+      </div>
+
+      <div class="role role--reviewer">
+        <div class="role__top">
+          <div class="role__ico"><svg class="ico" style="width:16px;height:16px"><use href="#i-shield"></use></svg></div>
+          <div>
+            <div class="role__name">内容审核员</div>
+            <div class="role__code">Reviewer</div>
+          </div>
+        </div>
+        <div class="role__stats">
+          <div class="role__stat"><span>1</span><em>成员</em></div>
+          <div class="role__stat"><span>13</span><em>权限</em></div>
+        </div>
+        <div class="role__desc">审核日记、下架违规内容、处理举报。可读全部日记但不可管理用户。</div>
+      </div>
+
+      <div class="role role--operator">
+        <div class="role__top">
+          <div class="role__ico"><svg class="ico" style="width:16px;height:16px"><use href="#i-chart"></use></svg></div>
+          <div>
+            <div class="role__name">运营</div>
+            <div class="role__code">Operator</div>
+          </div>
+        </div>
+        <div class="role__stats">
+          <div class="role__stat"><span>1</span><em>成员</em></div>
+          <div class="role__stat"><span>13</span><em>权限</em></div>
+        </div>
+        <div class="role__desc">管理标签与公告、查看运营数据。不参与审核，避免"既当裁判又当运动员"。</div>
+      </div>
+
+      <div class="role role--admin">
+        <div class="role__top">
+          <div class="role__ico"><svg class="ico" style="width:16px;height:16px"><use href="#i-sun"></use></svg></div>
+          <div>
+            <div class="role__name">超级管理员</div>
+            <div class="role__code">Admin</div>
+          </div>
+        </div>
+        <div class="role__stats">
+          <div class="role__stat"><span>1</span><em>成员</em></div>
+          <div class="role__stat"><span>22</span><em>权限</em></div>
+        </div>
+        <div class="role__desc">全部权限。核心权限（角色、权限、系统配置）为内置锁定，不可被移除。</div>
+      </div>
+    </div>
+
+    <section class="matrix-card">
+      <div class="matrix-card__head">
+        <div>
+          <h3>权限矩阵</h3>
+          <p>共 22 个权限码 · 57 条角色映射 · 点击方块直接修改，保存后立即生效</p>
+        </div>
+        <div class="row" style="gap:8px">
+          <button class="btn btn--ghost btn--sm">重置</button>
+          <button class="btn btn--primary btn--sm">保存变更</button>
+        </div>
+      </div>
+
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th>权限</th>
+            <th>普通用户<small>User</small></th>
+            <th>审核员<small>Reviewer</small></th>
+            <th>运营<small>Operator</small></th>
+            <th>管理员<small>Admin</small></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="grp"><td colspan="5">日记 · Diary</td></tr>
+          <tr>
+            <td><span class="perm__name">创建日记</span><span class="perm__code">diary:create</span></td>
+            <td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">查看自己的日记</span><span class="perm__code">diary:read:own</span></td>
+            <td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">修改自己的日记</span><span class="perm__code">diary:update:own</span></td>
+            <td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">删除自己的日记</span><span class="perm__code">diary:delete:own</span></td>
+            <td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">查看公开日记</span><span class="perm__code">diary:read:public</span></td>
+            <td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">提交 / 撤回审核</span><span class="perm__code">diary:submit</span></td>
+            <td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">审核日记</span><span class="perm__code">diary:audit</span></td>
+            <td><span class="cbx"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">下架日记</span><span class="perm__code">diary:takedown</span></td>
+            <td><span class="cbx"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">查看全部日记</span><span class="perm__code">diary:read:all</span></td>
+            <td><span class="cbx"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+
+          <tr class="grp"><td colspan="5">标签 · Tag</td></tr>
+          <tr>
+            <td><span class="perm__name">管理标签</span><span class="perm__code">tag:manage</span></td>
+            <td><span class="cbx"></span></td><td><span class="cbx"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+
+          <tr class="grp"><td colspan="5">举报 · Report</td></tr>
+          <tr>
+            <td><span class="perm__name">提交举报</span><span class="perm__code">report:create</span></td>
+            <td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">处理举报</span><span class="perm__code">report:handle</span></td>
+            <td><span class="cbx"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+
+          <tr class="grp"><td colspan="5">公告 · Announcement</td></tr>
+          <tr>
+            <td><span class="perm__name">查看公告</span><span class="perm__code">announcement:read</span></td>
+            <td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">管理公告</span><span class="perm__code">announcement:manage</span></td>
+            <td><span class="cbx"></span></td><td><span class="cbx"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+
+          <tr class="grp"><td colspan="5">数据与智能 · Data &amp; AI</td></tr>
+          <tr>
+            <td><span class="perm__name">查看运营数据</span><span class="perm__code">stats:view</span></td>
+            <td><span class="cbx"></span></td><td><span class="cbx"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">使用 AI 能力</span><span class="perm__code">ai:summary</span></td>
+            <td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+
+          <tr class="grp"><td colspan="5">系统 · System</td></tr>
+          <tr>
+            <td><span class="perm__name">查看用户列表</span><span class="perm__code">user:list</span></td>
+            <td><span class="cbx"></span></td><td><span class="cbx"></span></td><td><span class="cbx"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">管理用户</span><span class="perm__code">user:manage</span></td>
+            <td><span class="cbx"></span></td><td><span class="cbx"></span></td><td><span class="cbx"></span></td><td><span class="cbx cbx--on"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">管理角色</span><span class="perm__code">role:manage</span></td>
+            <td><span class="cbx"></span></td><td><span class="cbx"></span></td><td><span class="cbx"></span></td><td><span class="cbx cbx--locked"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">查看权限列表</span><span class="perm__code">permission:list</span></td>
+            <td><span class="cbx"></span></td><td><span class="cbx"></span></td><td><span class="cbx"></span></td><td><span class="cbx cbx--locked"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">查看审计日志</span><span class="perm__code">audit:log:view</span></td>
+            <td><span class="cbx"></span></td><td><span class="cbx"></span></td><td><span class="cbx"></span></td><td><span class="cbx cbx--locked"></span></td>
+          </tr>
+          <tr>
+            <td><span class="perm__name">系统配置</span><span class="perm__code">system:config</span></td>
+            <td><span class="cbx"></span></td><td><span class="cbx"></span></td><td><span class="cbx"></span></td><td><span class="cbx cbx--locked"></span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="matrix__foot">
+        <div class="legend">
+          <span><i class="on"></i>已授予</span>
+          <span><i class="off"></i>未授予</span>
+          <span><i class="lock"></i>内置锁定</span>
+        </div>
+        <span>最近修改：admin 于 2026-11-25 14:20 调整了「运营」的标签权限</span>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+</body>
+</html>

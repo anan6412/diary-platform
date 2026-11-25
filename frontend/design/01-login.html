@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>登录 · 日迹 DayTrace</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  body { min-width: 0; }
+
+  .login {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.08fr .92fr;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ---------------- 左：品牌面 ---------------- */
+  .brandside {
+    position: relative;
+    padding: 40px 56px 44px;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(158deg, #FFFCF8 0%, #FDF1F6 46%, #F8ECF4 100%);
+    overflow: hidden;
+  }
+  .brandside::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 55%, rgba(251, 247, 243, .55) 100%);
+    pointer-events: none;
+  }
+  .bloom--1 { width: 460px; height: 460px; left: -150px; top: -120px; opacity: .75; }
+  .bloom--2 { width: 380px; height: 380px; right: -110px; bottom: -60px; opacity: .5; }
+  .bloom--3 { width: 240px; height: 240px; left: 38%; bottom: 18%; opacity: .55; }
+
+  .brandside .brand { padding: 0; position: relative; z-index: 2; }
+
+  .hero {
+    position: relative;
+    z-index: 2;
+    margin-top: auto;
+    margin-bottom: auto;
+    padding: 40px 0 40px 4px;
+    max-width: 460px;
+  }
+
+  .hero__date {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    color: var(--mauve-deep);
+    margin-bottom: 26px;
+  }
+  .hero__date .num { font-size: 15px; letter-spacing: .04em; }
+  .hero__date span { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--ink-3); }
+
+  .hero__title {
+    font-family: var(--font-serif);
+    font-size: 54px;
+    line-height: 1.34;
+    font-weight: 400;
+    letter-spacing: .02em;
+    color: var(--ink);
+  }
+  .hero__title em {
+    font-style: normal;
+    position: relative;
+    white-space: nowrap;
+  }
+  .hero__title em::after {
+    content: "";
+    position: absolute;
+    left: -.06em; right: -.06em;
+    bottom: .16em;
+    height: .3em;
+    background: rgba(255, 253, 13, .6);
+    border-radius: 2px;
+    z-index: -1;
+  }
+
+  .hero__sub {
+    margin-top: 22px;
+    font-family: var(--font-serif);
+    font-size: 16px;
+    line-height: 2;
+    color: var(--ink-2);
+    max-width: 380px;
+  }
+
+  .hero__rule {
+    width: 56px; height: 1px;
+    background: var(--lilac);
+    margin: 30px 0 0 2px;
+  }
+
+  .brandside__foot {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 11.5px;
+    color: var(--ink-3);
+    letter-spacing: .04em;
+  }
+  .brandside__foot i {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--lilac); display: block;
+  }
+
+  /* ---------------- 右：登录面 ---------------- */
+  .formside {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: var(--surface);
+    border-left: 1px solid var(--line);
+  }
+  .formside::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--sun) 0%, var(--blush) 45%, var(--lilac) 100%);
+    opacity: .8;
+  }
+
+  .form {
+    width: 100%;
+    max-width: 344px;
+  }
+
+  .form__head { margin-bottom: 30px; }
+  .form__head .eyebrow { margin-bottom: 10px; display: block; }
+  .form__head h2 {
+    font-family: var(--font-serif);
+    font-size: 27px;
+    font-weight: 400;
+    letter-spacing: .02em;
+    margin-bottom: 8px;
+  }
+  .form__head p { font-size: 13px; color: var(--ink-3); }
+
+  .form .field + .field { margin-top: 16px; }
+
+  .form__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 18px 0 24px;
+    font-size: 12.5px;
+  }
+
+  .check {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--ink-2);
+    cursor: pointer;
+  }
+  .check i {
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    border: 1.5px solid var(--line-2);
+    background: #fff;
+    display: grid;
+    place-items: center;
+    flex: none;
+  }
+  .check i::after {
+    content: "";
+    width: 8px; height: 4px;
+    border-left: 2px solid var(--sun-deep);
+    border-bottom: 2px solid var(--sun-deep);
+    transform: rotate(-45deg) translateY(-1px);
+  }
+  .check.is-on i { background: var(--sun); border-color: var(--sun-deep); }
+
+  .link { color: var(--mauve); }
+  .link:hover { color: var(--mauve-deep); text-decoration: underline; text-underline-offset: 3px; }
+
+  .hint {
+    margin-top: 26px;
+    padding: 14px 16px;
+    border-radius: var(--r-md);
+    background: rgba(249, 229, 240, .45);
+    border: 1px dashed rgba(208, 173, 203, .85);
+  }
+  .hint__title {
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--mauve-deep);
+    margin-bottom: 10px;
+  }
+  .hint__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+  .hint__item {
+    font-size: 11.5px;
+    color: var(--ink-2);
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 3px 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .hint__item b { font-weight: 500; color: var(--ink); }
+  .hint__item span { color: var(--ink-3); }
+</style>
+</head>
+<body>
+<script src="icons.js"></script>
+
+<div class="login">
+
+  <section class="brandside">
+    <div class="bloom bloom--pink bloom--1"></div>
+    <div class="bloom bloom--lilac bloom--2"></div>
+    <div class="bloom bloom--sun bloom--3"></div>
+
+    <div class="brand">
+      <div class="brand__mark"></div>
+      <div>
+        <div class="brand__name">日迹</div>
+        <div class="brand__en">Daytrace</div>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="hero__date">
+        <span class="num">2026 / 11 / 25</span>
+        <span>星期三 · 第 329 天</span>
+      </div>
+
+      <h1 class="hero__title">
+        把今天，<br>留在<em>纸上</em>。
+      </h1>
+
+      <p class="hero__sub">
+        每天三百字，一年就是十万字。<br>
+        你写下的每一行，都会在某个想不起来的下午，重新亮起来。
+      </p>
+
+      <div class="hero__rule"></div>
+    </div>
+
+    <div class="brandside__foot">
+      <span>日迹 · 私人日记与轻社区</span>
+      <i></i>
+      <span>已记录 18,240 篇</span>
+      <i></i>
+      <span>v0.1 内测</span>
+    </div>
+  </section>
+
+  <section class="formside">
+    <form class="form" onsubmit="return false">
+      <div class="form__head">
+        <span class="eyebrow">Welcome back</span>
+        <h2>继续写下你的今天</h2>
+        <p>还没有账号？<a class="link" href="#">注册一个</a></p>
+      </div>
+
+      <div class="field">
+        <label class="label" for="u">账号</label>
+        <input class="input" id="u" type="text" placeholder="用户名或邮箱" value="alice">
+      </div>
+
+      <div class="field">
+        <label class="label" for="p">密码</label>
+        <input class="input" id="p" type="password" placeholder="请输入密码" value="User@123">
+      </div>
+
+      <div class="form__row">
+        <span class="check is-on"><i></i>记住我（7 天）</span>
+        <a class="link" href="#">忘记密码</a>
+      </div>
+
+      <button class="btn btn--primary btn--block btn--lg" type="submit">登 录</button>
+
+      <div class="hint">
+        <div class="hint__title">演示账号 · 点击自动填入</div>
+        <div class="hint__grid">
+          <div class="hint__item"><b>alice</b><span>User@123</span></div>
+          <div class="hint__item"><b>reviewer</b><span>Review@123</span></div>
+          <div class="hint__item"><b>operator</b><span>Operator@123</span></div>
+          <div class="hint__item"><b>admin</b><span>Admin@123</span></div>
+        </div>
+      </div>
+    </form>
+  </section>
+
+</div>
+
+</body>
+</html>

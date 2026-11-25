@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>我的日记 · 日迹 DayTrace</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  /* ---------- 主体头部 ---------- */
+  .headline { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; margin-bottom: 22px; }
+  .headline__left .eyebrow { display: block; margin-bottom: 9px; }
+  .headline__meta {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 10px; font-size: 12.5px; color: var(--ink-3);
+  }
+  .headline__meta i { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-4); display: block; }
+
+  .headline__right { display: flex; align-items: center; gap: 10px; padding-bottom: 4px; }
+
+  /* ---------- 筛选 ---------- */
+  .filters {
+    display: flex; align-items: center; gap: 6px;
+    padding-bottom: 14px; margin-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .filter {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 30px; padding: 0 12px;
+    border-radius: var(--r-full);
+    font-size: 12.5px; color: var(--ink-2);
+    transition: background .15s ease, color .15s ease;
+  }
+  .filter:hover { background: var(--paper-2); }
+  .filter b {
+    font-family: var(--font-num); font-size: 11px;
+    color: var(--ink-4); font-weight: 400;
+  }
+  .filter.is-on {
+    background: var(--ink); color: #FFF9F5;
+  }
+  .filter.is-on b { color: rgba(255, 249, 245, .6); }
+
+  .filters__end { margin-left: auto; display: flex; gap: 8px; }
+
+  /* ---------- 日记条目 ---------- */
+  .entries { display: flex; flex-direction: column; }
+
+  .entry {
+    position: relative;
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr) 32px;
+    gap: 20px;
+    padding: 22px 8px 22px 0;
+    border-bottom: 1px solid var(--line);
+    transition: background .18s ease;
+    cursor: pointer;
+  }
+  .entry:hover { background: rgba(249, 229, 240, .28); }
+  .entry::before {
+    content: ""; position: absolute; left: -44px; top: 0; bottom: 0;
+    width: 3px; background: var(--blush); opacity: 0;
+    transition: opacity .18s ease;
+  }
+  .entry:hover::before { opacity: 1; }
+
+  .entry__date { text-align: right; padding-top: 2px; }
+  .entry__d {
+    display: block; font-size: 30px; line-height: 1;
+    color: var(--ink); letter-spacing: -.02em;
+  }
+  .entry__m {
+    display: block; margin-top: 6px;
+    font-size: 11px; color: var(--ink-3); letter-spacing: .04em;
+  }
+
+  .entry__top { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+  .entry__title {
+    font-family: var(--font-serif);
+    font-size: 19px; font-weight: 400; letter-spacing: .01em;
+    color: var(--ink);
+  }
+  .entry:hover .entry__title { color: var(--mauve-deep); }
+
+  .entry__ex {
+    font-family: var(--font-serif);
+    font-size: 14px; line-height: 1.85; color: var(--ink-2);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-width: 560px;
+  }
+
+  .entry__meta {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 11px; font-size: 11.5px; color: var(--ink-3);
+  }
+  .entry__meta i { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-4); display: block; }
+
+  .entry__more { align-self: center; color: var(--ink-4); }
+  .entry:hover .entry__more { color: var(--ink-2); }
+
+  /* 驳回理由内联提示 */
+  .entry__note {
+    margin-top: 10px;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: var(--r-xs);
+    background: var(--rejected-bg);
+    color: var(--rejected-fg);
+    font-size: 11.5px;
+  }
+
+  /* ---------- 右栏 ---------- */
+  .rail-card { padding: 18px 20px; }
+
+  .streak__top { display: flex; align-items: flex-end; justify-content: space-between; }
+  .streak__num {
+    font-family: var(--font-num); font-size: 40px; line-height: 1;
+    color: var(--ink); letter-spacing: -.03em;
+  }
+  .streak__num small { font-size: 13px; color: var(--ink-3); margin-left: 3px; letter-spacing: 0; }
+  .streak__label { font-size: 12px; color: var(--ink-3); padding-bottom: 6px; }
+
+  .dots { display: flex; gap: 5px; margin-top: 16px; }
+  .dots span {
+    flex: 1; height: 26px; border-radius: 5px;
+    background: var(--paper-2);
+  }
+  .dots span.on { background: var(--blush); }
+  .dots span.today { background: var(--sun); box-shadow: 0 0 0 1px rgba(122,107,0,.25); }
+  .dots span.miss { background: var(--paper-3); }
+  .dots__foot { display: flex; justify-content: space-between; margin-top: 7px; font-size: 10.5px; color: var(--ink-4); }
+
+  .stat-line { display: flex; align-items: baseline; justify-content: space-between; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+  .stat-line:last-child { border-bottom: 0; padding-bottom: 0; }
+  .stat-line span { font-size: 12.5px; color: var(--ink-2); }
+  .stat-line b { font-family: var(--font-num); font-size: 15px; font-weight: 400; color: var(--ink); }
+
+  .mood { display: flex; flex-direction: column; gap: 9px; margin-top: 4px; }
+  .mood__row { display: grid; grid-template-columns: 40px 1fr 34px; gap: 9px; align-items: center; font-size: 11.5px; color: var(--ink-2); }
+  .mood__bar { height: 6px; border-radius: 3px; background: var(--paper-2); overflow: hidden; }
+  .mood__bar i { display: block; height: 100%; border-radius: 3px; }
+  .mood__v { text-align: right; font-family: var(--font-num); color: var(--ink-3); }
+
+  .tip {
+    position: relative; overflow: hidden;
+    padding: 18px 20px;
+    border-radius: var(--r-lg);
+    background: linear-gradient(150deg, #FFFDE8 0%, #FDF0F7 100%);
+    border: 1px solid rgba(255, 253, 13, .5);
+  }
+  .tip::after {
+    content: ""; position: absolute; right: -30px; top: -30px;
+    width: 110px; height: 110px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,253,13,.55), transparent 68%);
+  }
+  .tip__label {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--sun-deep); margin-bottom: 9px;
+  }
+  .tip__text { font-family: var(--font-serif); font-size: 13.5px; line-height: 1.8; color: var(--ink-2); position: relative; z-index: 1; }
+</style>
+</head>
+<body>
+<script src="icons.js"></script>
+
+<div class="app app--rail">
+
+  <!-- ============ 侧栏 ============ -->
+  <aside class="sidenav">
+    <div class="brand">
+      <div class="brand__mark"></div>
+      <div>
+        <div class="brand__name">日迹</div>
+        <div class="brand__en">Daytrace</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav__label">书写</div>
+      <a class="nav-item is-active" href="#"><svg class="ico"><use href="#i-book"></use></svg>我的日记<span class="nav-item__badge">12</span></a>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-pen"></use></svg>写一篇</a>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-tag"></use></svg>标签</a>
+
+      <div class="nav__label">治理</div>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-shield"></use></svg>审核台<span class="nav-item__badge">8</span></a>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-flag"></use></svg>举报处理</a>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-users"></use></svg>用户与权限</a>
+
+      <div class="nav__label">回顾</div>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-chart"></use></svg>数据统计</a>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-sun"></use></svg>去年今天</a>
+    </nav>
+
+    <div class="nav__foot">
+      <div class="user-card">
+        <div class="avatar">安</div>
+        <div class="grow">
+          <div class="user-card__name">alice</div>
+          <div class="user-card__role">普通用户 · USER</div>
+        </div>
+        <svg class="ico" style="width:15px;height:15px"><use href="#i-logout"></use></svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ 主区 ============ -->
+  <main class="main">
+    <div class="bloom bloom--pink" style="width:340px;height:340px;right:-120px;top:-140px;opacity:.35"></div>
+
+    <div class="headline">
+      <div class="headline__left">
+        <span class="eyebrow">2026 · 十一月</span>
+        <h1 class="h1">我的日记</h1>
+        <div class="headline__meta">
+          <span>本月 12 篇</span><i></i>
+          <span>累计 38,420 字</span><i></i>
+          <span>已连续记录 <b class="num" style="color:var(--pink-deep)">12</b> 天</span>
+        </div>
+      </div>
+      <div class="headline__right">
+        <div class="search">
+          <svg class="ico"><use href="#i-search"></use></svg>
+          <input class="input" type="text" placeholder="搜索标题或正文…">
+        </div>
+        <button class="btn btn--primary"><svg class="ico" style="width:15px;height:15px;color:#FFF9F5"><use href="#i-pen"></use></svg>写日记</button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <a class="filter is-on" href="#">全部 <b>12</b></a>
+      <a class="filter" href="#">草稿 <b>2</b></a>
+      <a class="filter" href="#">待审核 <b>1</b></a>
+      <a class="filter" href="#">已发布 <b>7</b></a>
+      <a class="filter" href="#">已驳回 <b>1</b></a>
+      <a class="filter" href="#">已下架 <b>1</b></a>
+      <div class="filters__end">
+        <button class="btn btn--ghost btn--sm"><svg class="ico" style="width:14px;height:14px"><use href="#i-clock"></use></svg>最近编辑</button>
+      </div>
+    </div>
+
+    <div class="entries">
+
+      <article class="entry">
+        <div class="entry__date">
+          <span class="entry__d num">25</span>
+          <span class="entry__m">十一月 · 周三</span>
+        </div>
+        <div class="entry__body">
+          <div class="entry__top">
+            <h3 class="entry__title">下雨了，楼下的猫躲进了信箱里</h3>
+            <span class="pill pill--published">已发布</span>
+          </div>
+          <p class="entry__ex">早上八点出门，雨已经下了一会儿。信箱的铁皮盖子被顶开一条缝，里面露出一截湿漉漉的尾巴。它没有看我，只是把身体又缩进去一点。我站在雨里等了三分钟，最后还是把手里的面包撕了一半，放在信箱下面的台阶上……</p>
+          <div class="entry__meta">
+            <span class="tag">雨天</span>
+            <span class="tag tag--lilac">猫</span>
+            <span class="tag">日常</span>
+            <i></i><span>1,204 字</span>
+            <i></i><span>9 次阅读</span>
+            <i></i><span>2 小时前</span>
+          </div>
+        </div>
+        <button class="entry__more"><svg class="ico"><use href="#i-more"></use></svg></button>
+      </article>
+
+      <article class="entry">
+        <div class="entry__date">
+          <span class="entry__d num">24</span>
+          <span class="entry__m">十一月 · 周二</span>
+        </div>
+        <div class="entry__body">
+          <div class="entry__top">
+            <h3 class="entry__title">关于「把时间花在哪里」的一次自我审问</h3>
+            <span class="pill pill--pending">待审核</span>
+          </div>
+          <p class="entry__ex">今天打开手机的次数是 89 次。这个数字让我愣了一下——平均每 10 分钟一次，一天里有 4 个多小时在"看一眼"里消失了。我试着回想那些被看一眼的时刻，发现大部分内容我完全不记得……</p>
+          <div class="entry__meta">
+            <span class="tag">自省</span>
+            <span class="tag tag--lime">时间</span>
+            <i></i><span>2,860 字</span>
+            <i></i><span>昨天 23:41 提交</span>
+          </div>
+        </div>
+        <button class="entry__more"><svg class="ico"><use href="#i-more"></use></svg></button>
+      </article>
+
+      <article class="entry">
+        <div class="entry__date">
+          <span class="entry__d num">23</span>
+          <span class="entry__m">十一月 · 周一</span>
+        </div>
+        <div class="entry__body">
+          <div class="entry__top">
+            <h3 class="entry__title">母亲寄来一箱橘子</h3>
+            <span class="pill pill--rejected">已驳回</span>
+          </div>
+          <p class="entry__ex">快递在下午三点送到，箱子被压扁了一个角，胶带缠了三层。打开是十八个橘子，个个都套着白色的泡沫网。我知道她一定是一个一个挑过的，因为大小几乎一样……</p>
+          <div class="entry__note">
+            <svg class="ico" style="width:13px;height:13px"><use href="#i-x"></use></svg>
+            驳回理由：缺少必要的事实依据描述，请补充后重新提交
+          </div>
+          <div class="entry__meta">
+            <span class="tag">家人</span>
+            <i></i><span>1,672 字</span>
+            <i></i><span>2 天前</span>
+          </div>
+        </div>
+        <button class="entry__more"><svg class="ico"><use href="#i-more"></use></svg></button>
+      </article>
+
+      <article class="entry">
+        <div class="entry__date">
+          <span class="entry__d num">21</span>
+          <span class="entry__m">十一月 · 周六</span>
+        </div>
+        <div class="entry__body">
+          <div class="entry__top">
+            <h3 class="entry__title">搬家第七天，终于把书按颜色排好</h3>
+            <span class="pill pill--draft">草稿</span>
+          </div>
+          <p class="entry__ex">书架一共五层，最上面那层留给还没读的。按颜色排这件事被朋友说是"形式主义"，但我觉得它至少解决了每次找书都要蹲下来看半小时书脊的问题……</p>
+          <div class="entry__meta">
+            <span class="tag">生活</span>
+            <span class="tag">搬家</span>
+            <i></i><span>836 字</span>
+            <i></i><span>4 天前编辑</span>
+          </div>
+        </div>
+        <button class="entry__more"><svg class="ico"><use href="#i-more"></use></svg></button>
+      </article>
+
+      <article class="entry" style="border-bottom:0">
+        <div class="entry__date">
+          <span class="entry__d num">19</span>
+          <span class="entry__m">十一月 · 周四</span>
+        </div>
+        <div class="entry__body">
+          <div class="entry__top">
+            <h3 class="entry__title">那家开到凌晨两点的面馆关门了</h3>
+            <span class="pill pill--down">已下架</span>
+          </div>
+          <p class="entry__ex">卷帘门上贴着一张纸，字是手写的，"因房租到期，本店搬迁至……"后面的地址被雨水糊了。我站了一会儿才想起来，今年一次也没来过……</p>
+          <div class="entry__meta">
+            <span class="tag">城市</span>
+            <span class="tag tag--lilac">记忆</span>
+            <i></i><span>1,430 字</span>
+            <i></i><span>6 天前 · 因举报核实下架</span>
+          </div>
+        </div>
+        <button class="entry__more"><svg class="ico"><use href="#i-more"></use></svg></button>
+      </article>
+
+    </div>
+  </main>
+
+  <!-- ============ 右栏 ============ -->
+  <aside class="rail">
+
+    <div class="card rail-card">
+      <div class="streak__top">
+        <div>
+          <div class="streak__num">12<small>天</small></div>
+          <div class="streak__label" style="margin-top:6px">连续记录</div>
+        </div>
+        <div class="pill pill--published" style="align-self:flex-start">本次最佳 12</div>
+      </div>
+      <div class="dots">
+        <span class="on"></span><span class="on"></span><span class="miss"></span>
+        <span class="on"></span><span class="on"></span><span class="on"></span>
+        <span class="on"></span><span class="on"></span><span class="on"></span>
+        <span class="on"></span><span class="on"></span><span class="on"></span>
+        <span class="on"></span><span class="today"></span>
+      </div>
+      <div class="dots__foot"><span>11/12</span><span>今天</span></div>
+    </div>
+
+    <div class="card rail-card">
+      <div class="section-title"><span class="card__title">十一月</span><span class="tiny muted">实时</span></div>
+      <div class="stat-line"><span>篇幅</span><b>38,420 字</b></div>
+      <div class="stat-line"><span>平均每篇</span><b>3,202 字</b></div>
+      <div class="stat-line"><span>被阅读</span><b>146 次</b></div>
+    </div>
+
+    <div class="card rail-card">
+      <div class="section-title"><span class="card__title">情绪分布</span><span class="tiny muted">AI 归类</span></div>
+      <div class="mood">
+        <div class="mood__row"><span>平静</span><div class="mood__bar"><i style="width:72%;background:var(--blush)"></i></div><span class="mood__v">42%</span></div>
+        <div class="mood__row"><span>温暖</span><div class="mood__bar"><i style="width:48%;background:var(--lilac)"></i></div><span class="mood__v">28%</span></div>
+        <div class="mood__row"><span>疲惫</span><div class="mood__bar"><i style="width:30%;background:var(--sun)"></i></div><span class="mood__v">18%</span></div>
+        <div class="mood__row"><span>低落</span><div class="mood__bar"><i style="width:18%;background:var(--lime)"></i></div><span class="mood__v">12%</span></div>
+      </div>
+    </div>
+
+    <div class="tip">
+      <div class="tip__label"><svg class="ico" style="width:12px;height:12px"><use href="#i-spark"></use></svg>今日提示</div>
+      <p class="tip__text">
+        你已经连续写了 12 天。要不要试试换一个开头——
+        <span class="marker">从一个声音写起</span>，而不是从"今天"写起。
+      </p>
+    </div>
+
+  </aside>
+
+</div>
+
+</body>
+</html>

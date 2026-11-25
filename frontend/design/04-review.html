@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>审核台 · 日迹 DayTrace</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  /* ---------- 统计卡 ---------- */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+
+  .stat {
+    position: relative; overflow: hidden;
+    padding: 18px 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+  }
+  .stat__label { font-size: 12px; color: var(--ink-3); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .stat__num { font-family: var(--font-num); font-size: 30px; line-height: 1; letter-spacing: -.03em; }
+  .stat__num small { font-size: 13px; color: var(--ink-3); margin-left: 4px; letter-spacing: 0; }
+  .stat__foot { margin-top: 10px; font-size: 11.5px; color: var(--ink-3); }
+  .stat__foot em { font-style: normal; color: var(--lime-deep); }
+  .stat--accent { background: linear-gradient(155deg, #FFFDF0 0%, #FFFDFB 70%); border-color: rgba(255,253,13,.5); }
+  .stat--accent .stat__num { color: var(--sun-deep); }
+
+  /* ---------- 两栏 ---------- */
+  .review { display: grid; grid-template-columns: 372px minmax(0, 1fr); gap: 20px; align-items: start; }
+
+  /* ---------- 队列 ---------- */
+  .queue { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+
+  .queue__head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 15px 18px;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+  }
+  .queue__tabs { display: flex; gap: 4px; }
+  .qtab {
+    height: 26px; padding: 0 10px; border-radius: var(--r-full);
+    font-size: 12px; color: var(--ink-2);
+  }
+  .qtab.is-on { background: var(--blush-soft); color: var(--pink-deep); font-weight: 500; }
+
+  .qitem {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    gap: 11px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    transition: background .15s ease;
+    position: relative;
+  }
+  .qitem:last-child { border-bottom: 0; }
+  .qitem:hover { background: rgba(249,229,240,.3); }
+  .qitem.is-on { background: rgba(249,229,240,.5); }
+  .qitem.is-on::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: linear-gradient(180deg, var(--sun), var(--blush));
+  }
+
+  .qitem .avatar { width: 30px; height: 30px; font-size: 13px; }
+  .qitem__title {
+    font-size: 13.5px; font-weight: 500; color: var(--ink);
+    line-height: 1.45;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .qitem__meta { display: flex; align-items: center; gap: 7px; margin-top: 5px; font-size: 11px; color: var(--ink-3); }
+  .qitem__meta i { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-4); display: block; }
+  .qitem__wait {
+    font-family: var(--font-num); font-size: 11px;
+    color: var(--ink-3); white-space: nowrap;
+  }
+  .qitem__wait.late { color: var(--rejected-fg); }
+
+  /* ---------- 详情 ---------- */
+  .detail { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+
+  .detail__head { padding: 22px 26px 18px; border-bottom: 1px solid var(--line); }
+
+  .stepper { display: flex; align-items: center; gap: 0; margin-bottom: 16px; }
+  .step {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11.5px; color: var(--ink-4); white-space: nowrap;
+  }
+  .step b {
+    width: 18px; height: 18px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-family: var(--font-num); font-size: 10px; font-weight: 400;
+    background: var(--paper-2); color: var(--ink-3);
+  }
+  .step.done b { background: var(--blush); color: var(--mauve-deep); }
+  .step.now b { background: var(--sun); color: var(--sun-deep); box-shadow: 0 0 0 4px rgba(255,253,13,.28); }
+  .step.now { color: var(--ink); }
+  .step.done { color: var(--ink-2); }
+  .step-line { flex: 1; height: 1px; background: var(--line-2); margin: 0 8px; min-width: 12px; }
+  .step-line.done { background: var(--blush); }
+
+  .detail__title {
+    font-family: var(--font-serif); font-size: 24px; line-height: 1.4;
+    font-weight: 400; letter-spacing: .01em;
+  }
+  .detail__meta { display: flex; align-items: center; gap: 9px; margin-top: 10px; font-size: 12px; color: var(--ink-3); }
+  .detail__meta i { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-4); display: block; }
+
+  .detail__body {
+    padding: 22px 26px;
+    max-height: 268px; overflow-y: auto;
+  }
+  .detail__body p {
+    font-family: var(--font-serif); font-size: 14.5px; line-height: 2;
+    color: var(--ink-2); margin-bottom: 16px;
+  }
+  .detail__body p:last-child { margin-bottom: 0; }
+
+  /* 风险提示条（AI 预审） */
+  .risk {
+    display: flex; align-items: flex-start; gap: 7px;
+    margin: 0 26px 4px;
+    padding: 10px 12px;
+    border-radius: var(--r-sm);
+    background: var(--pending-bg);
+    font-size: 11.5px; line-height: 1.7; color: var(--pending-fg);
+  }
+
+  /* 操作区 */
+  .detail__foot {
+    border-top: 1px solid var(--line);
+    padding: 18px 26px;
+    background: linear-gradient(180deg, #FFFDFB, #FDF8F4);
+  }
+  .detail__actions { display: flex; align-items: center; gap: 9px; }
+  .detail__actions .select { width: 190px; height: 38px; }
+  .detail__hint { display: flex; align-items: center; gap: 14px; margin-top: 12px; font-size: 11px; color: var(--ink-4); }
+  .detail__hint kbd {
+    font-family: var(--font-num); font-size: 10.5px;
+    padding: 1px 5px; border-radius: 4px;
+    border: 1px solid var(--line-2); background: #fff; color: var(--ink-3);
+  }
+
+  /* ---------- 审核流水 ---------- */
+  .trail { padding: 4px 26px 22px; }
+  .trail__item {
+    display: grid; grid-template-columns: 16px minmax(0,1fr);
+    gap: 11px; padding: 10px 0;
+    position: relative;
+  }
+  .trail__item::before {
+    content: ""; position: absolute; left: 5.5px; top: 22px; bottom: -4px;
+    width: 1px; background: var(--line);
+  }
+  .trail__item:last-child::before { display: none; }
+  .trail__dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 1.5px solid var(--line-2); background: var(--surface);
+    margin-top: 3px; z-index: 1;
+  }
+  .trail__dot.ok { border-color: var(--lime); background: var(--lime); }
+  .trail__dot.no { border-color: var(--blush); background: var(--blush); }
+  .trail__text { font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
+  .trail__text b { font-weight: 500; color: var(--ink); }
+  .trail__time { font-size: 11px; color: var(--ink-4); margin-top: 2px; font-family: var(--font-num); }
+</style>
+</head>
+<body>
+<script src="icons.js"></script>
+
+<div class="app">
+
+  <aside class="sidenav">
+    <div class="brand">
+      <div class="brand__mark"></div>
+      <div>
+        <div class="brand__name">日迹</div>
+        <div class="brand__en">Daytrace</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav__label">书写</div>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-book"></use></svg>我的日记</a>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-pen"></use></svg>写一篇</a>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-tag"></use></svg>标签</a>
+
+      <div class="nav__label">治理</div>
+      <a class="nav-item is-active" href="#"><svg class="ico"><use href="#i-shield"></use></svg>审核台<span class="nav-item__badge">8</span></a>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-flag"></use></svg>举报处理<span class="nav-item__badge">3</span></a>
+      <a class="nav-item" href="#"><svg class="ico"><use href="#i-users"></use></svg>用户与权限</a>
+    </nav>
+
+    <div class="nav__foot">
+      <div class="user-card">
+        <div class="avatar" style="background:linear-gradient(140deg,#F4F7D6,#E1E90A);color:#5C6600">审</div>
+        <div class="grow">
+          <div class="user-card__name">reviewer</div>
+          <div class="user-card__role">内容审核员 · REVIEWER</div>
+        </div>
+        <svg class="ico" style="width:15px;height:15px"><use href="#i-logout"></use></svg>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <div class="page-head">
+      <div class="page-head__title">
+        <span class="eyebrow">内容治理</span>
+        <h1 class="h1">审核台</h1>
+      </div>
+      <div class="page-head__actions">
+        <button class="btn btn--ghost btn--sm"><svg class="ico" style="width:14px;height:14px"><use href="#i-clock"></use></svg>仅看超时</button>
+        <button class="btn btn--ghost btn--sm"><svg class="ico" style="width:14px;height:14px"><use href="#i-grid"></use></svg>批量处理</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat stat--accent">
+        <div class="stat__label"><svg class="ico" style="width:13px;height:13px;color:var(--sun-deep)"><use href="#i-shield"></use></svg>待我审核</div>
+        <div class="stat__num">8<small>篇</small></div>
+        <div class="stat__foot">最久已等待 <em style="color:var(--rejected-fg)">6 小时</em></div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">今日已处理</div>
+        <div class="stat__num">23<small>篇</small></div>
+        <div class="stat__foot">平均 1.4 分钟 / 篇</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">通过率</div>
+        <div class="stat__num">87<small>%</small></div>
+        <div class="stat__foot">近 7 天 · <em>+4.2%</em></div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">AI 预审拦截</div>
+        <div class="stat__num">3<small>篇</small></div>
+        <div class="stat__foot">疑似敏感 / 广告</div>
+      </div>
+    </div>
+
+    <div class="review">
+
+      <!-- 队列 -->
+      <section class="queue">
+        <div class="queue__head">
+          <div class="queue__tabs">
+            <button class="qtab is-on">待审核 8</button>
+            <button class="qtab">已处理</button>
+          </div>
+          <svg class="ico" style="width:15px;height:15px"><use href="#i-more"></use></svg>
+        </div>
+
+        <div class="qitem is-on">
+          <div class="avatar">bo</div>
+          <div>
+            <div class="qitem__title">关于「把时间花在哪里」的一次自我审问</div>
+            <div class="qitem__meta"><span>bob</span><i></i><span>2,860 字</span><i></i><span>2 个标签</span></div>
+          </div>
+          <div class="qitem__wait late">6h</div>
+        </div>
+
+        <div class="qitem">
+          <div class="avatar">ca</div>
+          <div>
+            <div class="qitem__title">凌晨四点的便利店，只有我和收银员</div>
+            <div class="qitem__meta"><span>carol</span><i></i><span>1,940 字</span><i></i><span>3 个标签</span></div>
+          </div>
+          <div class="qitem__wait">4h</div>
+        </div>
+
+        <div class="qitem">
+          <div class="avatar">al</div>
+          <div>
+            <div class="qitem__title">给三年后的自己写一封信</div>
+            <div class="qitem__meta"><span>alice</span><i></i><span>3,102 字</span><i></i><span>1 个标签</span></div>
+          </div>
+          <div class="qitem__wait">2h</div>
+        </div>
+
+        <div class="qitem">
+          <div class="avatar">bo</div>
+          <div>
+            <div class="qitem__title">我在地铁上看完了一整本书</div>
+            <div class="qitem__meta"><span>bob</span><i></i><span>1,120 字</span><i></i><span>2 个标签</span></div>
+          </div>
+          <div class="qitem__wait">1h</div>
+        </div>
+
+        <div class="qitem">
+          <div class="avatar">ca</div>
+          <div>
+            <div class="qitem__title">周末去了城市边上那片没开发的滩涂</div>
+            <div class="qitem__meta"><span>carol</span><i></i><span>2,410 字</span><i></i><span>4 个标签</span></div>
+          </div>
+          <div class="qitem__wait">48m</div>
+        </div>
+
+        <div class="qitem">
+          <div class="avatar">al</div>
+          <div>
+            <div class="qitem__title">关于养一盆植物这件事的两个月</div>
+            <div class="qitem__meta"><span>alice</span><i></i><span>1,660 字</span><i></i><span>2 个标签</span></div>
+          </div>
+          <div class="qitem__wait">23m</div>
+        </div>
+      </section>
+
+      <!-- 详情 -->
+      <section class="detail">
+
+        <div class="detail__head">
+          <div class="stepper">
+            <div class="step done"><b>1</b>草稿</div>
+            <div class="step-line done"></div>
+            <div class="step now"><b>2</b>待审核</div>
+            <div class="step-line"></div>
+            <div class="step"><b>3</b>已发布</div>
+            <div class="step-line"></div>
+            <div class="step"><b>4</b>已下架</div>
+          </div>
+
+          <h2 class="detail__title">关于「把时间花在哪里」的一次自我审问</h2>
+          <div class="detail__meta">
+            <span class="avatar" style="width:22px;height:22px;font-size:11px">bo</span>
+            <span>bob</span>
+            <i></i><span>2,860 字</span>
+            <i></i><span>提交于 今天 10:12</span>
+            <i></i><span class="tag"># 自省</span>
+            <span class="tag tag--lime"># 时间</span>
+          </div>
+        </div>
+
+        <div class="detail__body">
+          <p>今天打开手机的次数是 89 次。这个数字让我愣了一下——平均每 10 分钟一次，一天里有 4 个多小时在"看一眼"里消失了。</p>
+          <p>我试着回想那些被看一眼的时刻，发现大部分内容我完全不记得。记得的反而是很小的事：早上电梯里有人替陌生人按住门，中午食堂多给了一勺土豆，傍晚路过操场时闻到的桂花味。</p>
+          <p>这让我怀疑，所谓"把时间花在哪里"，可能并不取决于我看了多少东西，而取决于有多少东西真正落进了记忆里。</p>
+        </div>
+
+        <div class="risk">
+          <svg class="ico" style="width:13px;height:13px;flex:none;margin-top:2px"><use href="#i-spark"></use></svg>
+          <span>AI 预审：未发现违规内容。文中含个人数据表述（手机使用时长），建议提示作者自行确认是否愿意公开。</span>
+        </div>
+
+        <div class="detail__foot">
+          <div class="detail__actions">
+            <select class="select">
+              <option>驳回理由：内容过于简短</option>
+              <option>驳回理由：含不当表述</option>
+              <option>驳回理由：疑似广告或引流</option>
+              <option>驳回理由：其他（需填写说明）</option>
+            </select>
+            <button class="btn btn--ghost"><svg class="ico" style="width:15px;height:15px"><use href="#i-x"></use></svg>驳回</button>
+            <button class="btn btn--primary" style="margin-left:auto"><svg class="ico" style="width:15px;height:15px;color:#FFF9F5"><use href="#i-check"></use></svg>通过并发布</button>
+          </div>
+          <div class="detail__hint">
+            <span><kbd>A</kbd> 通过</span>
+            <span><kbd>R</kbd> 驳回</span>
+            <span><kbd>J</kbd> 下一篇</span>
+            <span style="margin-left:auto">结果会通过 WebSocket 实时推送给作者</span>
+          </div>
+        </div>
+
+        <div class="trail" style="border-top:1px solid var(--line);padding-top:16px">
+          <div class="trail__item">
+            <div class="trail__dot ok"></div>
+            <div>
+              <div class="trail__text"><b>bob</b> 提交审核，状态 草稿 → 待审核</div>
+              <div class="trail__time">2026-11-25 10:12:04</div>
+            </div>
+          </div>
+          <div class="trail__item">
+            <div class="trail__dot"></div>
+            <div>
+              <div class="trail__text">系统 AI 预审完成，风险等级 <b>低</b></div>
+              <div class="trail__time">2026-11-25 10:12:11</div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

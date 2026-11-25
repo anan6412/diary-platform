@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>设计规范 · 日迹 DayTrace</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  body {
+    background: #FBF7F3;
+    background-image:
+      radial-gradient(760px 460px at 88% -6%, rgba(250,188,227,.34), transparent 68%),
+      radial-gradient(560px 380px at 4% 2%, rgba(255,253,13,.2), transparent 70%);
+    background-repeat: no-repeat;
+  }
+
+  .wrap { width: 1160px; margin: 0 auto; padding: 62px 0 100px; position: relative; z-index: 1; }
+
+  /* ---------- 封面 ---------- */
+  .cover { padding-bottom: 46px; border-bottom: 1px solid var(--line); margin-bottom: 52px; }
+  .cover__top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 56px; }
+  .cover .brand { padding: 0; }
+  .cover__ver {
+    font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-3);
+    padding: 5px 11px; border-radius: var(--r-full);
+    background: rgba(255,255,255,.7); border: 1px solid var(--line);
+  }
+
+  .cover h1 {
+    font-family: var(--font-serif);
+    font-size: 58px; line-height: 1.3; font-weight: 400; letter-spacing: .02em;
+    margin-bottom: 22px;
+  }
+  .cover h1 em { font-style: normal; position: relative; white-space: nowrap; }
+  .cover h1 em::after {
+    content: ""; position: absolute; left: -.04em; right: -.04em; bottom: .14em;
+    height: .28em; background: rgba(255,253,13,.6); border-radius: 2px; z-index: -1;
+  }
+  .cover p { font-family: var(--font-serif); font-size: 17px; line-height: 2; color: var(--ink-2); max-width: 660px; }
+
+  /* ---------- 章节 ---------- */
+  section { margin-bottom: 62px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 26px; }
+  .sec-head .idx {
+    font-family: var(--font-num); font-size: 12px; color: var(--pink-deep);
+    letter-spacing: .1em;
+  }
+  .sec-head h2 { font-family: var(--font-serif); font-size: 25px; font-weight: 400; letter-spacing: .02em; }
+  .sec-head .note { margin-left: auto; font-size: 12px; color: var(--ink-3); }
+
+  /* ---------- 配色 ---------- */
+  .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 26px; }
+  .sw { border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--line); background: var(--surface); }
+  .sw__chip { height: 96px; display: flex; align-items: flex-end; padding: 10px 12px; }
+  .sw__chip span { font-family: ui-monospace, Consolas, monospace; font-size: 10.5px; letter-spacing: .04em; }
+  .sw__info { padding: 12px 13px 14px; }
+  .sw__role { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+  .sw__use { font-size: 11px; line-height: 1.65; color: var(--ink-3); }
+
+  .neutral { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .ne {
+    border-radius: var(--r-md); border: 1px solid var(--line);
+    padding: 14px; background: var(--surface);
+  }
+  .ne__dot { width: 100%; height: 34px; border-radius: 8px; margin-bottom: 10px; }
+  .ne__name { font-size: 12px; font-weight: 500; }
+  .ne__code { font-family: ui-monospace, Consolas, monospace; font-size: 10.5px; color: var(--ink-4); margin-top: 2px; }
+
+  .callout {
+    display: flex; gap: 12px;
+    margin-top: 22px;
+    padding: 16px 18px;
+    border-radius: var(--r-md);
+    background: rgba(251, 247, 196, .5);
+    border: 1px solid rgba(255, 253, 13, .6);
+    font-size: 12.5px; line-height: 1.8; color: var(--ink-2);
+  }
+  .callout b { color: var(--sun-deep); }
+  .callout .ico { color: var(--sun-deep); flex: none; margin-top: 2px; }
+
+  /* ---------- 字体 ---------- */
+  .type-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 34px; align-items: start; }
+  .type-demo { padding: 26px 28px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); }
+  .type-row { display: flex; align-items: baseline; gap: 16px; padding: 11px 0; border-bottom: 1px dashed var(--line); }
+  .type-row:last-child { border-bottom: 0; }
+  .type-row .k { width: 96px; flex: none; font-size: 11px; color: var(--ink-4); letter-spacing: .06em; }
+
+  .font-cards { display: grid; gap: 12px; }
+  .fc { padding: 18px 20px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); }
+  .fc__name { font-size: 20px; line-height: 1.5; margin-bottom: 8px; }
+  .fc__meta { font-size: 11.5px; color: var(--ink-3); line-height: 1.7; }
+  .fc--serif .fc__name { font-family: var(--font-serif); }
+  .fc--sans .fc__name { font-family: var(--font-ui); font-weight: 600; letter-spacing: -.01em; }
+  .fc--num .fc__name { font-family: var(--font-num); letter-spacing: -.02em; }
+
+  /* ---------- 组件 ---------- */
+  .comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .comp { padding: 22px 24px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); }
+  .comp__title { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 16px; }
+  .comp__row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .comp__row + .comp__row { margin-top: 14px; }
+
+  /* ---------- 页面清单 ---------- */
+  .screens { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .screen {
+    display: block; border-radius: var(--r-lg); overflow: hidden;
+    background: var(--surface); border: 1px solid var(--line);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .screen:hover { transform: translateY(-3px); box-shadow: var(--sh-3); border-color: var(--blush); }
+  .screen__thumb {
+    height: 132px; position: relative; overflow: hidden;
+    border-bottom: 1px solid var(--line);
+    display: grid; place-items: center;
+  }
+  .screen__thumb span {
+    font-family: var(--font-serif); font-size: 15px; color: var(--ink-2);
+    position: relative; z-index: 1;
+  }
+  .screen__body { padding: 15px 17px 17px; }
+  .screen__no { font-family: var(--font-num); font-size: 11px; color: var(--ink-4); letter-spacing: .1em; }
+  .screen__name { font-size: 14px; font-weight: 600; margin: 5px 0 6px; }
+  .screen__desc { font-size: 11.5px; line-height: 1.7; color: var(--ink-3); }
+
+  /* ---------- 布局规范 ---------- */
+  .layout-demo {
+    padding: 24px; border-radius: var(--r-lg);
+    background: var(--surface); border: 1px solid var(--line);
+  }
+  .grid-viz {
+    display: grid; grid-template-columns: 248px 1fr 300px; gap: 0;
+    height: 150px; border-radius: var(--r-md); overflow: hidden;
+    border: 1px solid var(--line-2);
+  }
+  .grid-viz > div { display: grid; place-items: center; font-size: 11.5px; color: var(--ink-2); }
+  .gv-nav { background: var(--blush-soft); border-right: 1px solid var(--line-2); }
+  .gv-main { background: #FFFDFB; }
+  .gv-rail { background: var(--paper-2); border-left: 1px solid var(--line-2); }
+  .layout-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 18px; }
+  .ll { padding: 12px 14px; border-radius: var(--r-sm); background: var(--paper); border: 1px solid var(--line); }
+  .ll b { display: block; font-family: var(--font-num); font-size: 15px; font-weight: 400; }
+  .ll span { font-size: 11px; color: var(--ink-3); }
+
+  .foot { padding-top: 30px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-4); line-height: 1.9; }
+</style>
+</head>
+<body>
+<script src="icons.js"></script>
+
+<div class="wrap">
+
+  <header class="cover">
+    <div class="cover__top">
+      <div class="brand">
+        <div class="brand__mark"></div>
+        <div>
+          <div class="brand__name">日迹</div>
+          <div class="brand__en">Daytrace</div>
+        </div>
+      </div>
+      <span class="cover__ver">Design System v0.1 · 2026.11.25</span>
+    </div>
+
+    <h1>一套<em>克制的彩色</em>。<br>像纸，像晨光。</h1>
+    <p>
+      桌面端 Web，最小宽度 1280，主设计稿 1440×900。<br>
+      配色取自那张鱼的色卡，但经过了重新分工——五种颜色只负责氛围与语义，不负责承重。
+    </p>
+  </header>
+
+  <!-- 1 配色 -->
+  <section>
+    <div class="sec-head">
+      <span class="idx">01</span>
+      <h2>配色分工</h2>
+      <span class="note">色卡原值已全部保留，只是限制了使用面积</span>
+    </div>
+
+    <div class="swatches">
+      <div class="sw">
+        <div class="sw__chip" style="background:#FABCE3"><span style="color:#8E3D6B">FABCE3</span></div>
+        <div class="sw__info">
+          <div class="sw__role">主粉 · 品牌</div>
+          <div class="sw__use">当前选中项、连续记录格、图表主色。永远不做大面积底色。</div>
+        </div>
+      </div>
+      <div class="sw">
+        <div class="sw__chip" style="background:#F9E5F0"><span style="color:#A05C83">F9E5F0</span></div>
+        <div class="sw__info">
+          <div class="sw__role">淡粉 · 柔底</div>
+          <div class="sw__use">侧栏当前项底色、悬停态、AI 面板标签。唯一可以铺开用的粉。</div>
+        </div>
+      </div>
+      <div class="sw">
+        <div class="sw__chip" style="background:#D0ADCB"><span style="color:#5F3D59">D0ADCB</span></div>
+        <div class="sw__info">
+          <div class="sw__role">藕紫 · 次级</div>
+          <div class="sw__use">链接与 focus 环、已下架状态、装饰性文字。承担"安静的重音"。</div>
+        </div>
+      </div>
+      <div class="sw">
+        <div class="sw__chip" style="background:#FFFD0D"><span style="color:#6B5D00">FFFD0D</span></div>
+        <div class="sw__info">
+          <div class="sw__role">日光 · 高亮</div>
+          <div class="sw__use">荧光笔划线、权限勾选、待审核状态。只出现于 20px 以内的细节。</div>
+        </div>
+      </div>
+      <div class="sw">
+        <div class="sw__chip" style="background:#E1E90A"><span style="color:#545C00">E1E90A</span></div>
+        <div class="sw__info">
+          <div class="sw__role">青柠 · 生长</div>
+          <div class="sw__use">已发布状态、连续记录徽章、正向数据。代表"活着的"内容。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="neutral">
+      <div class="ne">
+        <div class="ne__dot" style="background:#FBF7F3;box-shadow:inset 0 0 0 1px #EDE3DC"></div>
+        <div class="ne__name">纸 · Paper</div>
+        <div class="ne__code">#FBF7F3</div>
+      </div>
+      <div class="ne">
+        <div class="ne__dot" style="background:#FFFDFB;box-shadow:inset 0 0 0 1px #EDE3DC"></div>
+        <div class="ne__name">卡面 · Surface</div>
+        <div class="ne__code">#FFFDFB</div>
+      </div>
+      <div class="ne">
+        <div class="ne__dot" style="background:#2A2320"></div>
+        <div class="ne__name">墨 · Ink</div>
+        <div class="ne__code">#2A2320</div>
+      </div>
+      <div class="ne">
+        <div class="ne__dot" style="background:#6A5C57"></div>
+        <div class="ne__name">淡墨 · Ink-2</div>
+        <div class="ne__code">#6A5C57</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <svg class="ico" style="width:15px;height:15px"><use href="#i-spark"></use></svg>
+      <div>
+        <b>为什么必须这样做：</b>FFFD0D 与 E1E90A 的亮度都在 90% 上下，白字几乎不可读、黑字产生强烈眩光。
+        直接当按钮或导航底色，在真实显示器上会"跳"。所以它们在这里只做三件事：荧光笔划线、勾选方块、状态圆点，
+        单块面积控制在 400px² 以内。文字与承重色全部交给后面的暖纸与墨色——
+        正文对比度 <b>13.8:1</b>，远超 WCAG AA 的 4.5:1。
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 字体 -->
+  <section>
+    <div class="sec-head">
+      <span class="idx">02</span>
+      <h2>字体与层级</h2>
+      <span class="note">标题与正文用霞鹜文楷，界面控件用无衬线</span>
+    </div>
+
+    <div class="type-grid">
+      <div class="type-demo">
+        <div class="type-row"><span class="k">Display 42/1.4</span><span style="font-family:var(--font-serif);font-size:32px">下雨了，楼下的猫</span></div>
+        <div class="type-row"><span class="k">H1 34/1.25</span><span style="font-family:var(--font-serif);font-size:26px">我的日记</span></div>
+        <div class="type-row"><span class="k">H2 21/1.4</span><span style="font-family:var(--font-serif);font-size:19px">关于时间的一次审问</span></div>
+        <div class="type-row"><span class="k">正文 17.5/2.15</span><span style="font-family:var(--font-serif);font-size:16px;color:#3A322D">信箱的铁皮盖子被顶开一条缝。</span></div>
+        <div class="type-row"><span class="k">界面 13.5</span><span style="font-size:13.5px">提交审核 · 已自动保存 · 2,860 字</span></div>
+        <div class="type-row"><span class="k">标签 11</span><span style="font-size:11px;letter-spacing:.16em;color:var(--ink-3)">CONTENT GOVERNANCE</span></div>
+      </div>
+
+      <div class="font-cards">
+        <div class="fc fc--serif">
+          <div class="fc__name">霞鹜文楷 LXGW WenKai</div>
+          <div class="fc__meta">标题、日记正文、日期招牌字。楷体的笔锋让"写日记"这件事有手写的暗示，比黑体更有温度。开源可商用，最终上线时自托管 woff2 子集。</div>
+        </div>
+        <div class="fc fc--sans">
+          <div class="fc__name">系统无衬线 / Inter</div>
+          <div class="fc__meta">导航、按钮、表单、表格。小字号下清晰度优先，不用楷体，避免密集文字发糊。</div>
+        </div>
+        <div class="fc fc--num">
+          <div class="fc__name">Georgia · 等宽数字</div>
+          <div class="fc__meta">日期、字数、统计数字。tabular-nums 让列表中多行的数字竖直对齐，这是"像出版物"的关键细节。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 组件 -->
+  <section>
+    <div class="sec-head">
+      <span class="idx">03</span>
+      <h2>核心组件</h2>
+      <span class="note">全部为纯 CSS，无图片依赖</span>
+    </div>
+
+    <div class="comp-grid">
+      <div class="comp">
+        <div class="comp__title">按钮</div>
+        <div class="comp__row">
+          <button class="btn btn--primary">提交审核</button>
+          <button class="btn btn--soft">AI 摘要</button>
+          <button class="btn btn--ghost">预览</button>
+          <button class="btn btn--sun btn--sm">通过</button>
+        </div>
+        <div class="comp__row">
+          <button class="btn btn--primary btn--sm">小号</button>
+          <button class="btn btn--ghost btn--sm"><svg class="ico" style="width:14px;height:14px"><use href="#i-clock"></use></svg>带图标</button>
+          <button class="btn btn--icon btn--ghost"><svg class="ico"><use href="#i-more"></use></svg></button>
+        </div>
+      </div>
+
+      <div class="comp">
+        <div class="comp__title">状态胶囊（五色刚好都有语义）</div>
+        <div class="comp__row">
+          <span class="pill pill--draft">草稿</span>
+          <span class="pill pill--pending">待审核</span>
+          <span class="pill pill--published">已发布</span>
+          <span class="pill pill--rejected">已驳回</span>
+          <span class="pill pill--down">已下架</span>
+        </div>
+        <div class="comp__row">
+          <span class="tag"># 雨天</span>
+          <span class="tag tag--lilac"># 猫</span>
+          <span class="tag tag--lime"># 已通过审核</span>
+        </div>
+      </div>
+
+      <div class="comp">
+        <div class="comp__title">表单</div>
+        <div class="comp__row" style="display:grid;gap:10px">
+          <div class="search" style="width:100%"><svg class="ico"><use href="#i-search"></use></svg><input class="input" placeholder="搜索标题或正文…"></div>
+          <select class="select"><option>驳回理由：内容过于简短</option></select>
+        </div>
+      </div>
+
+      <div class="comp">
+        <div class="comp__title">权限勾选态</div>
+        <div class="comp__row" style="gap:26px">
+          <span class="col" style="align-items:center;gap:6px"><span class="cbx cbx--on"></span><span class="tiny muted">已授予</span></span>
+          <span class="col" style="align-items:center;gap:6px"><span class="cbx"></span><span class="tiny muted">未授予</span></span>
+          <span class="col" style="align-items:center;gap:6px"><span class="cbx cbx--locked"></span><span class="tiny muted">内置锁定</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 布局 -->
+  <section>
+    <div class="sec-head">
+      <span class="idx">04</span>
+      <h2>布局栅格</h2>
+      <span class="note">横向铺满，不做竖屏 App 形态</span>
+    </div>
+
+    <div class="layout-demo">
+      <div class="grid-viz">
+        <div class="gv-nav">侧栏 248</div>
+        <div class="gv-main">主内容 自适应 · padding 34 / 44</div>
+        <div class="gv-rail">右栏 300</div>
+      </div>
+      <div class="layout-list">
+        <div class="ll"><b>248px</b><span>固定侧栏，承载角色化菜单</span></div>
+        <div class="ll"><b>300px</b><span>可选的右栏，列表页才出现</span></div>
+        <div class="ll"><b>680px</b><span>阅读页正文列宽，约 38 字/行</span></div>
+        <div class="ll"><b>1280px</b><span>最小支持宽度，低于此不压缩布局</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 页面 -->
+  <section>
+    <div class="sec-head">
+      <span class="idx">05</span>
+      <h2>六个页面</h2>
+      <span class="note">点击进入可交互原型</span>
+    </div>
+
+    <div class="screens">
+      <a class="screen" href="01-login.html" target="_blank">
+        <div class="screen__thumb" style="background:linear-gradient(150deg,#FFFCF8,#FDF1F6 60%,#F8ECF4)">
+          <span>把今天，留在纸上。</span>
+        </div>
+        <div class="screen__body">
+          <div class="screen__no">01</div>
+          <div class="screen__name">登录</div>
+          <div class="screen__desc">左右分屏。左侧品牌叙事 + 大字号标语文案，右侧表单，底部演示账号可一键填入。</div>
+        </div>
+      </a>
+
+      <a class="screen" href="02-diaries.html" target="_blank">
+        <div class="screen__thumb" style="background:linear-gradient(150deg,#FFFDFB,#FBF3EE)">
+          <span>我的日记</span>
+        </div>
+        <div class="screen__body">
+          <div class="screen__no">02</div>
+          <div class="screen__name">我的日记 · 列表</div>
+          <div class="screen__desc">日报式三栏。左侧大号日期做锚点，右侧栏放连续记录、月度统计与情绪分布。</div>
+        </div>
+      </a>
+
+      <a class="screen" href="03-editor.html" target="_blank">
+        <div class="screen__thumb" style="background:linear-gradient(150deg,#FFFDF9,#FDF7F2)">
+          <span>横格纸编辑器</span>
+        </div>
+        <div class="screen__body">
+          <div class="screen__no">03</div>
+          <div class="screen__name">写日记</div>
+          <div class="screen__desc">正文以 34px 横格线还原稿纸，右侧 AI 助手面板展示摘要/情绪/标签三件套。</div>
+        </div>
+      </a>
+
+      <a class="screen" href="04-review.html" target="_blank">
+        <div class="screen__thumb" style="background:linear-gradient(150deg,#FFFDF0,#FFFDFB)">
+          <span>审核台</span>
+        </div>
+        <div class="screen__body">
+          <div class="screen__no">04</div>
+          <div class="screen__name">审核台</div>
+          <div class="screen__desc">队列 + 详情双栏。顶部状态机步进条可视化 DRAFT→PENDING→PUBLISHED，底部审核流水留痕。</div>
+        </div>
+      </a>
+
+      <a class="screen" href="05-rbac.html" target="_blank">
+        <div class="screen__thumb" style="background:linear-gradient(150deg,#FFFDFB,#F7F0F6)">
+          <span>22 权限 × 4 角色</span>
+        </div>
+        <div class="screen__body">
+          <div class="screen__no">05</div>
+          <div class="screen__name">用户与权限</div>
+          <div class="screen__desc">角色卡 + 权限矩阵。数据全部取自真实 data.sql，含内置锁定态，Admin 核心权限不可移除。</div>
+        </div>
+      </a>
+
+      <a class="screen" href="06-reading.html" target="_blank">
+        <div class="screen__thumb" style="background:linear-gradient(150deg,#FFFCF8,#FAF4EF)">
+          <span>公开阅读页</span>
+        </div>
+        <div class="screen__body">
+          <div class="screen__no">06</div>
+          <div class="screen__name">阅读页</div>
+          <div class="screen__desc">680px 单栏、首字下沉、顶部阅读进度。这是"要真正上线"才会有的页面，不是作业形态。</div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <div class="foot">
+    日迹 DayTrace · 前端设计规范 v0.1 · 2026-11-25<br>
+    桌面优先（≥1280），未做移动端适配——本项目定位为 Web 产品，移动端在 v1.0 之后再单独出稿。<br>
+    字体：霞鹜文楷（SIL OFL 1.1，可商用）；图标：手绘 16px 线性图标，无第三方图标库依赖。
+  </div>
+
+</div>
+
+</body>
+</html>

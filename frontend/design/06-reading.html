@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>阅读 · 日迹 DayTrace</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  body { background: linear-gradient(180deg, #FFFCF8 0%, #FBF7F3 40%, #FAF4EF 100%); }
+
+  /* 阅读进度 */
+  .progress {
+    position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 20;
+    background: var(--paper-2);
+  }
+  .progress i {
+    display: block; height: 100%; width: 38%;
+    background: linear-gradient(90deg, var(--sun), var(--blush) 55%, var(--lilac));
+  }
+
+  /* ---------------- 顶栏 ---------------- */
+  .topnav {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 34px;
+    height: 66px;
+    padding: 0 56px;
+    background: rgba(255, 252, 248, .82);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(237, 227, 220, .8);
+  }
+  .topnav .brand { padding: 0; }
+  .topnav__links { display: flex; gap: 26px; font-size: 13.5px; color: var(--ink-2); }
+  .topnav__links a { position: relative; padding: 4px 0; }
+  .topnav__links a.is-on { color: var(--ink); font-weight: 500; }
+  .topnav__links a.is-on::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px;
+    background: var(--sun); border-radius: 2px;
+  }
+  .topnav__end { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+
+  /* ---------------- 正文 ---------------- */
+  .article-wrap { position: relative; padding: 54px 0 90px; }
+
+  .article {
+    width: 680px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .article__kicker {
+    display: flex; align-items: center; gap: 9px;
+    margin-bottom: 20px;
+  }
+  .article__kicker .tag { height: 24px; }
+
+  .article__title {
+    font-family: var(--font-serif);
+    font-size: 42px;
+    line-height: 1.4;
+    font-weight: 400;
+    letter-spacing: .01em;
+    color: var(--ink);
+    margin-bottom: 24px;
+  }
+
+  .byline {
+    display: flex; align-items: center; gap: 11px;
+    padding-bottom: 26px;
+    border-bottom: 1px solid var(--line);
+  }
+  .byline .avatar { width: 38px; height: 38px; font-size: 15px; }
+  .byline__name { font-size: 13.5px; font-weight: 500; }
+  .byline__meta { font-size: 11.5px; color: var(--ink-3); margin-top: 3px; display: flex; align-items: center; gap: 7px; }
+  .byline__meta i { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-4); display: block; }
+  .byline__end { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+  .article__body { padding-top: 34px; }
+  .article__body p {
+    font-family: var(--font-serif);
+    font-size: 17.5px;
+    line-height: 2.15;
+    color: #3A322D;
+    margin-bottom: 26px;
+    letter-spacing: .012em;
+  }
+  .article__body p.lead::first-letter {
+    float: left;
+    font-size: 58px;
+    line-height: .92;
+    padding: 6px 10px 0 0;
+    color: var(--pink-deep);
+    font-family: var(--font-num);
+  }
+  .article__body .quote {
+    margin: 34px 0;
+    padding: 4px 0 4px 22px;
+    border-left: 2px solid var(--blush);
+    font-family: var(--font-serif);
+    font-size: 18px;
+    line-height: 1.95;
+    color: var(--mauve-deep);
+  }
+
+  .article__end {
+    display: flex; align-items: center; gap: 10px;
+    margin: 40px 0 0;
+    color: var(--ink-4);
+  }
+  .article__end i { flex: 1; height: 1px; background: var(--line); }
+  .article__end span { font-family: var(--font-serif); font-size: 12px; letter-spacing: .2em; }
+
+  /* 浮动互动 */
+  .floatbar {
+    position: absolute;
+    left: -108px; top: 300px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .fbtn {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(255, 253, 251, .92);
+    border: 1px solid var(--line);
+    display: grid; place-items: center;
+    color: var(--ink-2);
+    box-shadow: var(--sh-1);
+    transition: transform .15s ease, box-shadow .15s ease, color .15s ease;
+    position: relative;
+  }
+  .fbtn:hover { transform: translateY(-2px); box-shadow: var(--sh-2); color: var(--pink-deep); }
+  .fbtn.is-on { background: var(--blush-soft); border-color: var(--blush); color: var(--pink-deep); }
+  .fbtn small {
+    position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
+    font-size: 10px; color: var(--ink-4); font-family: var(--font-num);
+  }
+
+  /* 作者卡 */
+  .author-card {
+    display: flex; align-items: center; gap: 14px;
+    margin-top: 34px;
+    padding: 22px 24px;
+    border-radius: var(--r-lg);
+    background: linear-gradient(150deg, #FFFCF9, #FDF4F8);
+    border: 1px solid var(--line);
+  }
+  .author-card .avatar { width: 48px; height: 48px; font-size: 19px; }
+  .author-card__name { font-family: var(--font-serif); font-size: 17px; }
+  .author-card__desc { font-size: 12px; color: var(--ink-3); margin-top: 4px; line-height: 1.6; }
+
+  /* 上一篇 / 下一篇 */
+  .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 20px; }
+  .pager a {
+    padding: 18px 20px;
+    border-radius: var(--r-md);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .pager a:hover { border-color: var(--blush); transform: translateY(-1px); }
+  .pager__label { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 7px; }
+  .pager__title { font-family: var(--font-serif); font-size: 15px; line-height: 1.5; color: var(--ink); }
+
+  /* 页脚提示 */
+  .foot-note {
+    width: 680px; margin: 40px auto 0;
+    text-align: center; font-size: 11.5px; color: var(--ink-4);
+    line-height: 1.9;
+  }
+</style>
+</head>
+<body>
+<script src="icons.js"></script>
+
+<div class="progress"><i></i></div>
+
+<nav class="topnav">
+  <div class="brand">
+    <div class="brand__mark"></div>
+    <div>
+      <div class="brand__name">日迹</div>
+      <div class="brand__en">Daytrace</div>
+    </div>
+  </div>
+
+  <div class="topnav__links">
+    <a class="is-on" href="#">发现</a>
+    <a href="#">热门</a>
+    <a href="#">标签</a>
+    <a href="#">关于日迹</a>
+  </div>
+
+  <div class="topnav__end">
+    <div class="search"><svg class="ico"><use href="#i-search"></use></svg><input class="input" placeholder="搜索日记…"></div>
+    <button class="btn btn--ghost btn--sm">登录</button>
+    <button class="btn btn--primary btn--sm"><svg class="ico" style="width:14px;height:14px;color:#FFF9F5"><use href="#i-pen"></use></svg>写日记</button>
+  </div>
+</nav>
+
+<div class="article-wrap">
+  <div class="bloom bloom--pink" style="width:520px;height:520px;left:-160px;top:-120px;opacity:.42"></div>
+  <div class="bloom bloom--sun" style="width:420px;height:420px;right:-140px;top:180px;opacity:.32"></div>
+
+  <article class="article">
+
+    <div class="floatbar">
+      <button class="fbtn is-on" title="喜欢"><svg class="ico"><use href="#i-heart"></use></svg><small>128</small></button>
+      <button class="fbtn" title="收藏" style="margin-top:14px"><svg class="ico"><use href="#i-book"></use></svg><small>42</small></button>
+      <button class="fbtn" title="更多"><svg class="ico"><use href="#i-more"></use></svg></button>
+    </div>
+
+    <div class="article__kicker">
+      <span class="tag"># 城市观察</span>
+      <span class="tag tag--lilac"># 日常</span>
+      <span class="tag tag--lime"># 已通过审核</span>
+    </div>
+
+    <h1 class="article__title">下雨了，楼下的猫躲进了信箱里</h1>
+
+    <div class="byline">
+      <div class="avatar">安</div>
+      <div>
+        <div class="byline__name">alice</div>
+        <div class="byline__meta">
+          <span class="num">2026 / 11 / 25</span><i></i>
+          <span>1,204 字</span><i></i>
+          <span>约 4 分钟</span>
+        </div>
+      </div>
+      <div class="byline__end">
+        <button class="btn btn--ghost btn--sm">关注作者</button>
+        <button class="btn btn--icon btn--ghost btn--sm"><svg class="ico" style="width:14px;height:14px"><use href="#i-more"></use></svg></button>
+      </div>
+    </div>
+
+    <div class="article__body">
+      <p class="lead">早上八点出门，雨已经下了一会儿。信箱的铁皮盖子被顶开一条缝，里面露出一截湿漉漉的尾巴。</p>
+
+      <p>它没有看我，只是把身体又缩进去一点。我站在雨里等了三分钟，最后还是把手里的面包撕了一半，放在信箱下面的台阶上。走出十几米再回头，面包已经不见了，信箱还是那个信箱。</p>
+
+      <div class="quote">我并不知道它有没有吃到。也许是被别的什么叼走了，也许是雨把面包泡软了，它嫌弃。</div>
+
+      <p>但我愿意相信那个上午，我们完成了一次没有语言的交换——我给它一顿早餐，它还我一个"今天还不算太糟"的理由。</p>
+
+      <p>后来我在想，人和城市的关系大概也是这样。你并不会真的认识那些和你共用一条街的人，但你会记得楼下面馆的灯光，记得凌晨还在修车的师傅，记得某棵树今年开得特别早。这些具体的、微小的、没有用处的东西，才是一座城市在你身上留下的重量。</p>
+
+      <p>晚上回家时雨停了。信箱的盖子被合上了，很整齐，像是有人特意做的。</p>
+    </div>
+
+    <div class="article__end">
+      <i></i><span>全文完</span><i></i>
+    </div>
+
+    <div class="author-card">
+      <div class="avatar">安</div>
+      <div class="grow">
+        <div class="author-card__name">alice</div>
+        <div class="author-card__desc">在日迹记录第 329 天 · 已发布 87 篇 · 连续记录 12 天</div>
+      </div>
+      <button class="btn btn--soft btn--sm">查看主页</button>
+    </div>
+
+    <div class="pager">
+      <a href="#">
+        <div class="pager__label">上一篇</div>
+        <div class="pager__title">关于「把时间花在哪里」的一次自我审问</div>
+      </a>
+      <a href="#">
+        <div class="pager__label">下一篇</div>
+        <div class="pager__title">母亲寄来一箱橘子，个个都套着白网</div>
+      </a>
+    </div>
+
+  </article>
+
+  <div class="foot-note">
+    本文由作者发布于日迹，经内容审核后公开 · 转载请注明出处<br>
+    如果你也有一件想记下来的小事，<a class="link" href="#" style="color:var(--mauve)">从今天开始写</a>
+  </div>
+
+</div>
+
+</body>
+</html>
