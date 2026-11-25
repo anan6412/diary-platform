@@ -55,11 +55,89 @@
 
 ## 本地运行
 
-（待补充：15 分钟内可复现的完整步骤）
+### 环境要求
+
+| 组件 | 版本 | 说明 |
+|---|---|---|
+| JDK | 17 | 必须，Spring Boot 3.2 官方支持上限为 21 |
+| Maven | 3.9+ | 或使用 `mvnw` |
+| MySQL | 8.0+ | 默认端口 3306 |
+| Redis | 7.x | 默认端口 6379 |
+| Node.js | 18+ | 仅前端需要 |
+
+### 步骤
+
+**1. 建库与导入种子数据**
+
+```bash
+cd backend/src/main/resources/db
+mysql -u root -p < schema.sql
+mysql -u root -p diary_platform < data.sql
+```
+
+**2. 配置本地连接**
+
+```bash
+cd backend/src/main/resources
+cp application-local.yml.example application-local.yml
+# 填入 MySQL 密码、JWT 密钥、AI API Key
+```
+
+`application-local.yml` 已在 `.gitignore` 中，不会被提交。
+
+**3. 启动 Redis**
+
+```bash
+redis-server
+# 验证
+redis-cli ping   # 期望返回 PONG
+```
+
+Windows 可直接双击 `scripts\start-redis.bat`。
+
+**4. 启动后端**
+
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+Windows 可直接双击 `scripts\start-backend.bat`（脚本内已固定 JDK 17 与端口 8080）。
+
+启动成功后：
+- 接口文档 http://localhost:8080/swagger-ui.html
+- OpenAPI JSON http://localhost:8080/v3/api-docs
+
+**5. 前端（可选，仅演示用）**
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### 一键启动（Docker Compose）
+
+```bash
+cp .env.example .env    # 填入真实值
+docker compose up -d --build
+```
+
+包含 MySQL + Redis + 后端 + 前端四个服务，MySQL 首次启动自动执行建表与种子脚本。
+
 
 ## 演示账号
 
-（待补充）
+种子数据中每个角色至少一个账号，密码统一为 BCrypt 加盐哈希存储。
+
+| 角色 | 用户名 | 密码 | 说明 |
+|---|---|---|---|
+| 超级管理员 ADMIN | `admin` | `Admin@123` | 用户管理、角色权限管理、系统配置 |
+| 内容审核员 REVIEWER | `reviewer` | `Review@123` | 审核公开申请、处理举报、下架内容 |
+| 运营 OPERATOR | `operator` | `Operator@123` | 标签库、公告、平台数据看板 |
+| 普通用户 USER | `alice` | `User@123` | 写日记、申请公开、举报他人内容 |
+| 普通用户 USER | `bob` | `User@123` | 用于演示越权拦截（与 alice 交叉操作） |
+| 普通用户 USER（已禁用） | `carol` | `User@123` | 用于演示「禁用账号后旧 Token 立即失效」 |
 
 ## 测试
 
